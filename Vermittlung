@@ -1,0 +1,778 @@
+Sub myAutofiltern()
+
+MsgBox "Das Makro wurde gestartet."
+
+MsgBox "Die Reports werden sogleich erstellt werden. Die Erstellung der Reports kann einige Minuten dauern und in dieser Zeit wird Excel nicht bedienbar sein. Nach Fertigstellung erscheint eine Meldung."
+
+'Application.ScreenUpdating = False
+
+Dim b, c, d, e, f, g, h, i, j, k, l, m, N, p, z As Integer
+Dim a As Long 'Anzahl TN (bzw. Nachnamen)
+
+'//Vorbereitung
+
+'safelsforce-Daten aktualisieren
+
+ActiveWorkbook.RefreshAll
+
+'stepnovaImport kopieren auf neuen Reiter
+Sheets.Add , Sheets(Sheets.Count), 1 '1 Blatt hinzufügen nach dem letzten Blatt
+ActiveSheet.Name = "Leistungsabrechnung" 'als Blattname nehmen
+Sheets("ImportStepnova").Select
+ActiveSheet.UsedRange.Select
+Selection.Copy 'gesamte Tabellenblatt kopieren
+Sheets("Leistungsabrechnung").Select
+ActiveSheet.Paste
+
+''//TEIL 1: Namen der LS in Array schreiben
+'
+'Sheets("ImportSalesforce").Select
+'ActiveSheet.Range("C2").End(xlDown).Select 'Zelle in Spalte E in der letzten Zeile, in der LS-Name steht, auswählen
+'Range(Cells(2, 3), ActiveCell).Copy 'Bereich von erster Zelle mit LS bis letzte Zelle mit LS kopieren
+
+'//TEIL 1: Namen der LS in Array schreiben
+
+'LS auf Hilfsreiter 1 kopieren
+Sheets("ImportSalesforce").Select
+ActiveSheet.Range("C2").End(xlDown).Select 'Zelle in Spalte C in der letzten Zeile, in der LS-Name steht, auswählen
+Range(Cells(2, 3), ActiveCell).Copy 'Bereich von erster Zelle mit LS bis letzte Zelle mit LS kopieren
+
+
+Sheets("HilfsreiterLS").Select
+Range("A1").Select
+ActiveSheet.Paste
+
+'LR auf Hilfsreiter 1 kopieren
+Sheets("ImportSalesforce").Select
+ActiveSheet.Range("D2").End(xlDown).Select 'Zelle in Spalte D in der letzten Zeile, in der LR-Name steht, auswählen
+Range(Cells(2, 4), ActiveCell).Copy 'Bereich von erster Zelle mit LR bis letzte Zelle mit LS kopieren
+
+
+Sheets("HilfsreiterLS").Select
+Range("B1").Select
+ActiveSheet.Paste
+
+'Mailadresse LS auf Hilfsreiter 1 kopieren
+Sheets("ImportSalesforce").Select
+ActiveSheet.Range("H2").End(xlDown).Select 'Zelle in Spalte H in der letzten Zeile, in der LS-Mailadresse steht, auswählen
+Range(Cells(2, 8), ActiveCell).Copy 'Bereich von erster Zelle mit Mailadresse LS bis letzte Zelle mit LS kopieren
+
+
+Sheets("HilfsreiterLS").Select
+Range("C1").Select
+ActiveSheet.Paste
+
+'Mailadresse LR auf Hilfsreiter 1 kopieren
+Sheets("ImportSalesforce").Select
+ActiveSheet.Range("I2").End(xlDown).Select 'Zelle in Spalte I in der letzten Zeile, in der LR-Name steht, auswählen
+Range(Cells(2, 9), ActiveCell).Copy 'Bereich von erster Zelle mit Mailadresse LR bis letzte Zelle mit LS kopieren
+
+
+Sheets("HilfsreiterLS").Select
+Range("D1").Select
+ActiveSheet.Paste
+
+ActiveSheet.UsedRange.Select 'Bereich, in dem etwas steht, auswählen
+Selection.RemoveDuplicates 1, xlNo 'doppelte Namen löschen
+
+'Zeilen ohne LS löschen, sodass keine leeren Namen ins Array geschrieben werden später:
+
+    'Dieser Block funktioniert einzeln, jedoch im Ablauf hier nicht, da leere Zellen nicht als leer erkannt werden - warum weiß ich nicht
+    'Dim z, p As Long  ' Zeilenzähler
+    'Application.ScreenUpdating = False  ' Bildschirmausgaben abschalten
+    'ActiveSheet.UsedRange.Select 'Bereich, in dem etwas steht, auswählen
+    'p = Selection.Rows.Count ' Anzahl der Reihen im ausgewählten Bereich zählen
+    'For z = p To 1 Step -1 'ab letzter ausgefüllter Zeile aufwärts Prüfung bis Zeile 1
+    'If (Application.WorksheetFunction.CountA(Range(Cells(z, 1), Cells(z, 3))) = 0) Then Rows(z).Delete 'wenn Zeile leer, dann löschen
+    'If z Mod 100 = 0 Then Application.StatusBar = z
+    'Next z
+    'Application.StatusBar = False       ' Statuszeile wieder ans Excel zurückgeben
+    'Application.ScreenUpdating = True  ' Bildschirmausgaben einschaltenEnd Sub
+    
+ActiveSheet.UsedRange.Select 'Bereich, in dem etwas steht, auswählen
+p = Selection.Rows.Count ' Anzahl der Reihen im ausgewählten Bereich zählen
+
+'// Zeilen, wo leer ist, löschen
+'/äußere Schleife: Alle LS durchgehen
+
+j = 0 'setze j auf Null, damit die unten stehende Schleife ausgeführt werden kann
+m = p
+z = 1 'weil dies die erste Zeile ist, in der Daten stehen könnten
+
+    Do While (j < m) 'Führe aus, bis i= m, also bis Schleife so oft durchgelaufen ist, wie eventuell ausgefüllte Zeilen da sind
+    
+    'Aktive Zelle auf Inhalt prüfen: gehe pro Zeile alle Spalten durch
+    Cells(z, 1).Activate 'Setze als aktive Zelle: Zeile, in der Daten von TN stehen könnte und Spalte 1
+    
+    'Zähler g dafür, in welcher Spalte wir uns befinden
+    g = 1 'Wir sarten in Spalte 1, weil dort Daten stehen
+    'Zähler h dafür, wie viele Spalten wir auf Leer sein geprüft haben
+    h = 0 'noch haben wir 0 Spalten auf Leer sein geprüft
+    'Zähler dafür, wie viele Zellen leer sind
+    N = 0 'noch wissen wir von 0 Zellen, dass sie leer sind
+    
+        '/innere Schleife: alle Spalten durchgehen (nur 1 Spalte hier)
+        Do While (h < 1) 'Schleife solange bis wir alle Spalten, in denen in der Zeile Daten stehen könnten (nur Spalte A) durchgelaufen sind
+        Cells(z, g).Activate 'in der Zeile, die wir gerade prüfen wollen aktiviere Spalte g
+            
+            If ActiveCell.Value = "" Then
+            N = N + 1 'Wenn die aktive Zelle leer ist, erhöhe n um 1
+            End If
+        
+        h = h + 1 'Wir haben jetzt eine weitere Zelle auf Leer sein geprüft, daher erhöhe den Zähler h um eins
+        g = g + 1 'gehe eine Spalte weiter nach rechts mit g
+        Loop
+        
+    'Wenn n =1, also alle durchlaufenen Zellen der Zeile leer sind, dann lösche diese Zeile
+    If N = 1 Then 'Wenn n =1, also alle durchlaufenen Zellen leer sind
+    ActiveCell.Rows("1:1").EntireRow.Select 'von der aktiven Zelle aus: markiere die gesamte Zeile
+    Selection.Delete Shift:=xlUp 'Lösche die aktive Zeile und schiebe den Rest hoch
+    z = z - 1 'da nun eine Zeile fehlt, muss der Zeilenzähler auch eine Zeile nach oben geschoben werden
+    End If
+    
+    z = z + 1 ' Setze als neue Zeile z die Zeile, die 1 Zeile weiter unten steht als z, um die nächste Zeile zu überprüfen
+    j = j + 1 'erhöhe j um eins, weil bereits eine Zeile kontrolliert wurde, für den Schleifenzähler
+    Loop
+
+
+'LS in Array schreiben:
+Sheets("HilfsreiterLS").Range("A1").End(xlDown).Select 'Zelle in Spalte A in der letzten Zeile, in der LS-Name steht, auswählen
+Range(Cells(1, 1), ActiveCell).Select 'Bereich von erster Zelle mit LS bis letzte Zelle mit LS auswählen
+
+
+'die selektierten LS durchlaufen und jeden in eine Stelle eines Arrays schreiben
+Dim Anz1 As Long, arr1()
+With Selection
+ReDim arr1(.Cells.Count - 1)
+For Anz1 = 1 To .Cells.Count
+arr1(Anz1 - 1) = .Cells(Anz1).Value
+Next Anz1
+End With
+
+'LR in Array schreiben:
+Sheets("HilfsreiterLS").Range("B1").End(xlDown).Select 'Zelle in Spalte B in der letzten Zeile, in der LR-Name steht, auswählen
+Range(Cells(1, 2), ActiveCell).Select 'Bereich von erster Zelle mit LR bis letzte Zelle mit LS auswählen
+
+
+'die selektierten LR durchlaufen und jeden in eine Stelle eines Arrays schreiben
+Dim AnzLR As Long, arrLR()
+With Selection
+ReDim arrLR(.Cells.Count - 1)
+For AnzLR = 1 To .Cells.Count
+arrLR(AnzLR - 1) = .Cells(AnzLR).Value
+Next AnzLR
+End With
+
+'Mailadressen der LS in Array schreiben:
+Sheets("HilfsreiterLS").Range("C1").End(xlDown).Select 'Zelle in Spalte A in der letzten Zeile, in der LS-Name steht, auswählen
+Range(Cells(1, 3), ActiveCell).Select 'Bereich von erster Zelle mit LS bis letzte Zelle mit LS auswählen
+
+
+'die selektierten Mailadressen der LS durchlaufen und jeden in eine Stelle eines Arrays schreiben
+Dim AnzMailLS As Long, arrMailLS()
+With Selection
+ReDim arrMailLS(.Cells.Count - 1)
+For AnzMailLS = 1 To .Cells.Count
+arrMailLS(AnzMailLS - 1) = .Cells(AnzMailLS).Value
+Next AnzMailLS
+End With
+
+'Mailadressen der LR in Array schreiben:
+Sheets("HilfsreiterLS").Range("D1").End(xlDown).Select 'Zelle in Spalte B in der letzten Zeile, in der LR-Name steht, auswählen
+Range(Cells(1, 4), ActiveCell).Select 'Bereich von erster Zelle mit LR bis letzte Zelle mit LS auswählen
+
+
+'die selektierten Mailadressen der LR durchlaufen und jeden in eine Stelle eines Arrays schreiben
+Dim AnzMailLR As Long, arrMailLR()
+With Selection
+ReDim arrMailLR(.Cells.Count - 1)
+For AnzMailLR = 1 To .Cells.Count
+arrMailLR(AnzMailLR - 1) = .Cells(AnzMailLR).Value
+Next AnzMailLR
+End With
+
+'Hilfsreiter leeren:
+Sheets("HilfsreiterLS").Select
+ActiveSheet.UsedRange.Delete
+
+'Hilfsreiter 2 leeren:
+        Sheets("HilfsreiterKST").Select
+        Sheets("HilfsreiterKST").UsedRange.Delete
+
+
+'//TEIL 2: alle TN eines LS in einer Liste haben für jeden LS
+
+    i = 0
+    
+     Do While i < Anz1
+        
+        'Diese Funktion filtert die stepnova Import-Liste so, dass nur noch alle TN EINES LS darin sind
+    
+        'Tabelle Import aus salesforce:
+        'nach LS filtern
+
+        Worksheets("ImportSalesforce").UsedRange.AutoFilter _
+         Field:=3, _
+         Criteria1:=arr1(i), _
+         Operator:=xlFilterValues
+        
+        'KST des LS in Array schreiben
+        
+        Sheets("ImportSalesforce").Select
+        ActiveSheet.Range("C2").End(xlDown).Select 'Zelle in Spalte E in der letzten Zeile, in der LS-Name steht, auswählen
+        Range(Cells(2, 3), ActiveCell).SpecialCells(xlCellTypeVisible).Offset(0, -1).Copy 'Bereich kopieren von erster Zelle mit erste bis letzte Zelle mit KST des LS (nur sichtbare Zellen)
+        
+        'KST des LS auf Hilfsreiter 2 kopieren
+        Sheets("HilfsreiterKST").Select
+        Range("A1").Select
+        ActiveSheet.Paste
+        
+        ActiveSheet.UsedRange.Select 'Bereich, in dem etwas steht, auswählen
+        p = Selection.Rows.Count ' Anzahl der Reihen im ausgewählten Bereich zählen
+        
+        '// Zeilen, wo leer ist, löschen
+        '/äußere Schleife: Alle KST durchgehen
+        
+        k = 0 'setze i auf Null, damit die unten stehende Schleife ausgeführt werden kann
+        m = p
+        z = 1 'weil dies die erste Zeile ist, in der Daten stehen könnten
+        
+            Do While (k < m) 'Führe aus, bis i= m, also bis Schleife so oft durchgelaufen ist, wie eventuell ausgefüllte Zeilen da sind
+            
+            'Aktive Zelle auf Inhalt prüfen: gehe pro Zeile alle Spalten durch
+            Cells(z, 1).Activate 'Setze als aktive Zelle: Zeile, in der Daten von TN stehen könnte und Spalte 1
+            
+            'Zähler g dafür, in welcher Spalte wir uns befinden
+            g = 1 'Wir sarten in Spalte 1, weil dort Daten stehen
+            'Zähler h dafür, wie viele Spalten wir auf Leer sein geprüft haben
+            h = 0 'noch haben wir 0 Spalten auf Leer sein geprüft
+            'Zähler dafür, wie viele Zellen leer sind
+            N = 0 'noch wissen wir von 0 Zellen, dass sie leer sind
+            
+                '/innere Schleife: alle Spalten durchgehen (nur 1 Spalte hier)
+                Do While (h < 1) 'Schleife solange bis wir alle Spalten, in denen in der Zeile Daten stehen könnten (nur Spalte A) durchgelaufen sind
+                Cells(z, g).Activate 'in der Zeile, die wir gerade prüfen wollen aktiviere Spalte g
+                    
+                    If ActiveCell.Value = "" Then
+                    N = N + 1 'Wenn die aktive Zelle leer ist, erhöhe n um 1
+                    End If
+                
+                h = h + 1 'Wir haben jetzt eine weitere Zelle auf Leer sein geprüft, daher erhöhe den Zähler h um eins
+                g = g + 1 'gehe eine Spalte weiter nach rechts mit g
+                Loop
+                
+            'Wenn n =1, also alle durchlaufenen Zellen der Zeile leer sind, dann lösche diese Zeile
+            If N = 1 Then 'Wenn n =1, also alle durchlaufenen Zellen leer sind
+            ActiveCell.Rows("1:1").EntireRow.Select 'von der aktiven Zelle aus: markiere die gesamte Zeile
+            Selection.Delete Shift:=xlUp 'Lösche die aktive Zeile und schiebe den Rest hoch
+            z = z - 1 'da nun eine Zeile fehlt, muss der Zeilenzähler auch eine Zeile nach oben geschoben werden
+            End If
+            
+            z = z + 1 ' Setze als neue Zeile z die Zeile, die 1 Zeile weiter unten steht als z, um die nächste Zeile zu überprüfen
+            k = k + 1 'erhöhe i um eins, weil bereits eine Zeile kontrolliert wurde, für den Schleifenzähler
+            Loop
+
+        
+        'im Hilfsreiter 2 die kopierten KST durchlaufen un jede in eine Stelle eines Arrays schreiben
+        ActiveSheet.UsedRange.Select 'Bereich, in dem etwas steht, auswählen
+        Dim Anz2 As Long, arr2()
+        With Selection
+        ReDim arr2(.Cells.Count - 1)
+            For Anz2 = 1 To .Cells.Count
+            arr2(Anz2 - 1) = .Cells(Anz2).Value
+            Next Anz2
+            End With
+        
+        'Tabelle Daten salesforce: Filter löschen
+        Sheets("ImportSalesforce").Select
+         ActiveSheet.UsedRange.AutoFilter
+        
+        'Tabelle Import aus stepnova:
+        'nach Array mit Inhalt KST des LS filtern:
+        
+        Worksheets("ImportStepnova").Select
+        ActiveSheet.UsedRange.Select
+        Selection.AutoFilter _
+         Field:=1, _
+         Criteria1:=arr2, _
+         Operator:=xlFilterValues
+         
+         'Neues Tabellenblatt anlegen mit Namen des LS für den Bericht
+         Sheets.Add , Sheets(Sheets.Count), 1 '1 Blatt hinzufügen nach dem letzten Blatt
+        ActiveSheet.Name = arr1(i) 'Namen des LS als Blattname nehmen
+        
+        'Daten von Tabelle 1 auf neuen Reiter kopieren
+        Worksheets("ImportStepnova").Select
+        ActiveSheet.UsedRange.Select
+        Selection.SpecialCells(xlCellTypeVisible).Copy 'Bereich kopieren von erster Zeile mit erste bis letzte Zeile mit KST des LS mit allen Spalten(nur sichtbare Zellen)
+        Sheets(arr1(i)).Select
+        ActiveSheet.Paste
+        
+'hier einfügen:Aufgabe ausgeben und in Zeile schreiben statt restlicher Spalten oder so
+        'Dieses Makro prüft, ob in der Spalte für die jeweilige Checkbox in stepnova, ein X steht und gibt die passende Aufgabe für den LS aus.
+
+            'Variablendeklaration:
+            Dim intSchleiDu As Integer
+            Dim intZeile As Integer 'Zähler dafür, in welcher Zeile wir uns befinden
+            Dim intAnzTN As Integer 'Anzahl TN (bzw. Nachnamen)
+            Dim intSpalte As Integer 'Zähler dafür, in welcher Spalte wir uns befinden
+            Dim intSchleifenzaehler As Integer
+            Dim strLSAufgabe As String
+            Dim strKSTSpeicher As String
+            Dim strNameSpeicher As String
+            Dim strVornameSpeicher As String
+            Dim strProjektnameSpeicher As String
+            Dim strOrtSpeicher As String
+            
+            
+            
+            'Variableninitialisierung:
+            intSchleiDu = 0
+            intZeile = 4 'weil dies die erste Zeile ist, in der Daten stehen könnten
+            intAnzTN = ActiveSheet.UsedRange.Rows.Count - 3
+            
+            ' //Abschnitt1: zählen der TN in der Liste
+            
+            
+            '//Abschnitt 2:
+            '/äußere Schleife: Alle TN durchgehen
+            
+                For intSchleiDu = 1 To (intAnzTN) 'Führe aus, bis i= IntAnzTN, also bis Schleife so oft durchgelaufen ist, wie eventuell ausgefüllte Zeilen da sind
+                
+                'Aktive Zelle auf Inhalt prüfen: gehe pro Zeile alle Spalten durch
+                Cells(intZeile, 26).Activate 'Setze als aktive Zelle: Zeile, in der Daten von TN stehen könnte und Spalte Z=26, da dort der Bereich der stepnova-Checkboxes beginnt
+                
+                'Variableninitialisierung:
+                intSpalte = 26 'Wir sarten in Spalte Spalte Z=26, da dort der Bereich der stepnova-Checkboxes beginnt
+                
+                    Do While (intSchleifenzaehler < 10) 'Schleife solange bis wir alle Spalten, in denen in der Zeile Daten stehen könnten (bis Ende stepnova-Checkboxes) durchgelaufen sind (10 Checkboxes)
+                    Cells(intZeile, intSpalte).Activate 'in der Zeile, die wir gerade prüfen wollen, aktiviere Spalte inSpalte
+                
+                        If ActiveCell.Value = "" Then 'Wenn die Checkbox nicht aktiviert ist, dann
+                            'Funktion AufgabeLS aufrufen,welche je nachdem, welchen Wert intSpalte hat, also in welcher Spalte, die zu welcher Checkbox gehört, wir sind, die entsprecehnde Aufgabe für diese Checkbox ausgegeben wird
+                            LSAufgabe = AufgabeLS(intSpalte)
+                            'MsgBox LSAufgabe
+                            'hier statt Msgbox einfügen:soll in Zellegeschrieben werden
+                            strKSTSpeicher = Cells(intZeile, 1).Value
+                            strNameSpeicher = Cells(intZeile, 2).Value
+                            strVornameSpeicher = Cells(intZeile, 3).Value
+                            strProjektnameSpeicher = Cells(intZeile, 52).Value
+                            strOrtSpeicher = Cells(intZeile, 51).Value
+                            
+                            Cells(intZeile, 1).EntireRow.Clear
+                            Cells(intZeile, 1) = strKSTSpeicher
+                            Cells(intZeile, 2) = strOrtSpeicher
+                            Cells(intZeile, 3) = strProjektnameSpeicher
+                            Cells(intZeile, 4) = strNameSpeicher
+                            Cells(intZeile, 5) = strVornameSpeicher
+                            Cells(intZeile, 6) = LSAufgabe
+                            
+                            GoTo BereitsAufgabeLSausgegeben
+                            
+                        Else:
+                            If intSpalte = "35" Then
+                                ActiveCell.EntireRow.Delete
+                            Else:
+                                intSpalte = intSpalte + 1 'gehe eine Spalte weiter nach rechts mit intSpalte
+                                intSchleifenzaehler = intSchleifenzaehler + 1 'Wenn die aktive Zelle voll ist, erhöhe um 1, um die nächste Checkbox rechts daneben zu prüfen
+                            End If
+                        End If
+                    
+                    Loop
+                    
+BereitsAufgabeLSausgegeben:
+                
+                intZeile = intZeile + 1 ' Setze als neue Zeile za die Zeile, die 1 Zeile weiter unten steht als za, um die nächste Zeile zu überprüfen
+                'intSchleiDu = intSchleiDu + 1 'erhöhe um eins, weil bereits eine Zeile kontrolliert wurde, für den Schleifenzähler
+                intSchleifenzaehler = 0
+                Next
+                
+                ' aufräumen:
+                
+                Cells(1, 1).EntireRow.Delete
+                Cells(1, 1).EntireRow.Delete
+                
+                Cells(1, 1).EntireRow.Clear
+                Cells(1, 1) = "Kostenstelle"
+                Cells(1, 2) = "Ort"
+                Cells(1, 3) = "Projekt"
+                Cells(1, 4) = "Nachname"
+                Cells(1, 5) = "Vorname"
+                Cells(1, 6) = "Aufgabe"
+                
+            
+            'übertragen
+        Worksheets("Musterseite Report LS").Select
+        ActiveSheet.Copy after:=Worksheets(arr1(i))
+        ActiveSheet.Name = "VV-Report " & arr1(i) 'Name zu lang?Nö! :-)
+        
+       
+       '//Ins LAYOUT bringen:
+            Dim intSchleiDu4 As Integer
+            Dim intZeile4 As Integer 'Zähler dafür, in welcher Zeile wir uns befinden
+            
+            intSchleiDu4 = 0
+            intZeile4 = 2 'weil dies die erste Zeile ist, in der Daten stehen könnten
+            
+        For intSchleiDu4 = 1 To (intAnzTN) 'Führe aus, bis i= IntAnzTN, also bis Schleife so oft durchgelaufen ist, wie eventuell ausgefüllte Zeilen da sind
+                
+                'If ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 1).Value <> "" Then
+                
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 1).Value = ActiveWorkbook.Sheets(arr1(i)).Cells(intZeile4, 1).Value 'KST
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 1).Borders.Color = RGB(123, 123, 123)
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 1).WrapText = True
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 1).Font.Name = "Barlow"
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 1).Font.Size = "10"
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 2).Value = ActiveWorkbook.Sheets(arr1(i)).Cells(intZeile4, 2).Value 'Ort
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 2).Borders.Color = RGB(123, 123, 123)
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 2).WrapText = True
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 2).Font.Name = "Barlow"
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 2).Font.Size = "10"
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 3).Value = ActiveWorkbook.Sheets(arr1(i)).Cells(intZeile4, 3).Value 'Projekt
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 3).Borders.Color = RGB(123, 123, 123)
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 3).WrapText = True
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 3).Font.Name = "Barlow"
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 3).Font.Size = "10"
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 4).Value = ActiveWorkbook.Sheets(arr1(i)).Cells(intZeile4, 4).Value 'NAchname
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 4).WrapText = True
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 4).Borders.Color = RGB(123, 123, 123)
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 4).Font.Name = "Barlow"
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 4).Font.Size = "10"
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 5).Value = ActiveWorkbook.Sheets(arr1(i)).Cells(intZeile4, 5).Value 'Vorname
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 5).WrapText = True
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 5).Borders.Color = RGB(123, 123, 123)
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 5).Font.Name = "Barlow"
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 5).Font.Size = "10"
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 6).Value = ActiveWorkbook.Sheets(arr1(i)).Cells(intZeile4, 6).Value 'Aufgabe
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 6).WrapText = True
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 6).Borders.Color = RGB(123, 123, 123)
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 6).Font.Name = "Barlow"
+                    ActiveWorkbook.Sheets("VV-Report " & arr1(i)).Cells(intZeile4, 6).Font.Size = "10"
+                    
+                'Else: GoTo Sprungmarke1
+                'End If
+                            
+'Sprungmarke1:
+                
+                intZeile4 = intZeile4 + 1 ' Setze als neue Zeile za die Zeile, die 1 Zeile weiter unten steht als za, um die nächste Zeile zu überprüfen
+                Next
+                Worksheets("VV-Report " & arr1(i)).Select
+               
+       
+'hier einfügen: Tabellenblatt als PDF speichern unter Pfad (bei Buchhaltung zu erfragen) oder das als Extra-Knopf einbauen oder mit Schleife, dass wenn das nicht geht, Fenster öfnnen oder so
+
+                Dim strLSName As String
+                strLSName = arr1(i)
+
+ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:="C:\Users\Mitarbeiter\Desktop\" & "20" & Format(Date, "YYMMDD") & " Report Vermittlungsvergütung " & strLSName, Quality:=xlQualityStandard, _
+        IncludeDocProperties:=False, IgnorePrintAreas:=False, OpenAfterPublish:=False
+'//hier Mailversand Anfang
+
+'1/Mailadressen LS und LR ermitteln:
+
+Dim strLRName As String
+strLRName = arrLR(i)
+
+'Dim strLSName As String
+
+'strLRName = "Peter Dotter"
+'strLSName = "Hans Wurst"
+
+Dim strLRMailadresse As String
+Dim strLSMailadresse As String
+Dim arrZwischenspeicherLS()
+Dim arrZwischenspeicherLR()
+Dim strVornameLR As String
+Dim strVornameLS As String
+Dim strNachnameLR As String
+Dim strNachnameLS As String
+Dim strersterBuchstabe As String
+Dim strzweiterBuchstabe As String
+Dim strMailadresseLS As String
+Dim strMailadresseLR As String
+
+
+strZwischenspeicherLS = Split(strLSName, " ")
+strZwischenspeicherLR = Split(strLRName, " ")
+
+'MsgBox (strZwischenspeicherLS(1))
+'MsgBox (strZwischenspeicherLS(2))
+'MsgBox (strZwischenspeicherLR(1))
+'MsgBox (strZwischenspeicherLR(2))
+
+strVornameLS = strZwischenspeicherLS(0)
+strVornameLR = strZwischenspeicherLR(0)
+
+'strersterBuchstabe = Left(strVornameLS, 1)
+'strzweiterBuchstabe = Left(strVornameLR, 1)
+'
+'strNachnameLS = strZwischenspeicherLS(1)
+'strNachnameLR = strZwischenspeicherLR(1)
+
+'strMailadresseLS = strersterBuchstabe & "." & strNachnameLS & "@mein-gsm.de"
+'strMailadresseLR = strzweiterBuchstabe & "." & strNachnameLR & "@mein-gsm.de"
+
+strMailadresseLS = arrMailLS(i)
+strMailadresseLR = arrMailLR(i)
+
+MsgBox (strMailadresseLS)
+MsgBox (strMailadresseLR)
+
+'/2 Mails ausfüllen und anzeigen oder direkt versenden
+Dim OutApp, OutMail As Object
+    'Dim wks As Worksheet
+    'Dim wkb As Workbook
+    'Dim rngEmail As Range
+    'Dim sFileName, sOrdner As String
+    Dim vSheetsNames, vPDFSheetsNames, vFileNames As Variant
+    'Dim i As Integer
+    Dim olOldbody As String
+
+    
+'    rngEmail = strLSName
+
+    With Application
+        .EnableEvents = False
+        .ScreenUpdating = False
+    End With
+
+    'Set wkb = ThisWorkbook
+    
+    Set OutApp = CreateObject("Outlook.Application")
+
+    Set OutMail = OutApp.CreateItem(0)
+    
+
+    With OutMail
+        .GetInspector.Display
+        olOldbody = .htmlBody
+        .To = strMailadresseLS
+        .CC = strMailadresseLR
+        '.BCC = rngEmail.Offset(0, 2).Value
+        .Subject = "Report Vermittlungsvergütung " & Format(Date, "YYYYMMDD")
+        .htmlBody = "<font style=""font-family: Barlow; font-size: 10pt"">Liebe(r) " & "Annika" & ", <br> als Anlage erhältst du den Report für die Vermittlungsvergütung für die Projekte an deinen Standorten. Der Report für die Vermittlungsvergütung gibt Dir einen Überblick darüber, was bei welchen Teilnehmenden für die Vermittlungsvergütung als nächster Schritt getamn werden braucht. < br > Für Fragen stehen wir gern zur Verfügung. <br> <br> Viele Grüße, <br> dein Leistungsabrechnungs-Team <br> \*Diese E-Mail wurde automatisch erstellt.*\" & olOldbody
+
+
+
+'Anhang: Dateien. Der gesamte Dateipfad muss angegeben werden.
+            
+            If Dir("C:\Users\Mitarbeiter\Desktop\" & "20" & Format(Date, "YYMMDD") & " Report Vermittlungsvergütung " & strLSName & ".pdf") <> "" Then
+                .Attachments.Add "C:\Users\Mitarbeiter\Desktop\" & "20" & Format(Date, "YYMMDD") & " Report Vermittlungsvergütung " & strLSName & ".pdf"
+            End If
+                   
+        .Display
+        '.Send
+        
+    End With
+
+    Set OutMail = Nothing
+        
+    'Schließt Outlook wieder. Funktioniert nur wenn vorher auch die einzelnen Email geschlossen wurden.
+    Set OutApp = Nothing
+    
+    With Application
+        .EnableEvents = True
+        .ScreenUpdating = True
+    End With
+    
+ '//hier Mailversand Ende
+         
+         Worksheets("ImportStepnova").Select
+         Selection.AutoFilter 'Filter aufheben in Tabelle Import aus stepnova
+         
+         'Im Hilfsreiter 2 die Daten löschen
+         Sheets("HilfsreiterKST").Select
+        ActiveSheet.UsedRange.Select
+        Selection.Clear
+         
+         i = i + 1 'i erhöhen, damit im nächsten Schleifendurchlauf die nächste LS genommen wird
+         
+     
+         Loop
+         
+'//Auf Blatt Leistungsabrechung gelb markieren
+'Dieses Makro prüft, ob in der Spalte für die jeweilige Checkbox in stepnova,
+'ein X steht und markiert die Zeile für die Leistungsabrechnung gelb bzw. blau, wenn die 1. bzw. 2. Tranche abgerechnet angekreuzt ist
+Sheets("Leistungsabrechnung").Select
+            'Variablendeklaration:
+            Dim intSchleiDu2 As Integer
+            Dim intZeile2 As Integer 'Zähler dafür, in welcher Zeile wir uns befinden
+            Dim intAnzTN2 As Integer 'Anzahl TN (bzw. Nachnamen)
+            Dim intSpalte2 As Integer 'Zähler dafür, in welcher Spalte wir uns befinden
+            Dim intSchleifenzaehler2 As Integer
+'            Dim strLSAufgabe As String
+'            Dim strKSTSpeicher As String
+'            Dim strNameSpeicher As String
+'            Dim strVornameSpeicher As String
+            
+            
+            'Variableninitialisierung:
+            intSchleiDu2 = 0
+            intZeile2 = 4 'weil dies die erste Zeile ist, in der Daten stehen könnten
+            intAnzTN2 = ActiveSheet.UsedRange.Rows.Count
+            
+            ' //Abschnitt1: zählen der TN in der Liste
+            
+            
+            '//Abschnitt 2:
+            '/äußere Schleife: Alle TN durchgehen
+            
+                For intSchleiDu2 = 1 To (intAnzTN2) 'Führe aus, bis i= IntAnzTN2, also bis Schleife so oft durchgelaufen ist, wie eventuell ausgefüllte Zeilen da sind
+'                    Cells(intZeile2, 31).Activate
+'                    If ActiveCell.Value = "x" Then 'Wenn die Checkbox nicht aktiviert ist, dann
+'                        ActiveCell.EntireRow.Interior.Color = vbYellow
+'                    End If
+'
+'                    Cells(intZeile2, 35).Activate
+'                    If ActiveCell.Value = "x" Then 'Wenn die Checkbox nicht aktiviert ist, dann
+'                        ActiveCell.EntireRow.Interior.Color = vbCyan
+'                    End If
+                
+                'Aktive Zelle auf Inhalt prüfen: gehe pro Zeile alle Spalten durch
+                Cells(intZeile2, 26).Activate 'Setze als aktive Zelle: Zeile, in der Daten von TN stehen könnte und Spalte Z=26, da dort der Bereich der stepnova-Checkboxes beginnt
+                
+                'Variableninitialisierung:
+                intSpalte2 = 26 'Wir sarten in Spalte Spalte Z=26, da dort der Bereich der stepnova-Checkboxes beginnt
+                
+                    Do While (intSchleifenzaehler2 < 10) 'Schleife solange bis wir alle Spalten, in denen in der Zeile Daten stehen könnten (bis Ende stepnova-Checkboxes) durchgelaufen sind (10 Checkboxes)
+                    Cells(intZeile2, intSpalte2).Activate 'in der Zeile, die wir gerade prüfen wollen, aktiviere Spalte inSpalte
+
+                        If ActiveCell.Value = "" Then 'Wenn die Checkbox nicht aktiviert ist, dann
+
+                            If intSpalte2 = "32" Then
+                            ActiveCell.EntireRow.Interior.Color = vbYellow
+                            End If
+
+                            GoTo BereitsAufgabeLSausgegeben2
+
+                        Else:
+                        
+                            If intSpalte2 = "35" Then
+                            ActiveCell.EntireRow.Interior.Color = vbCyan
+                            End If
+                            
+                        intSpalte2 = intSpalte2 + 1 'gehe eine Spalte weiter nach rechts mit intSpalte
+                        intSchleifenzaehler2 = intSchleifenzaehler2 + 1 'Wenn die aktive Zelle voll ist, erhöhe um 1, um die nächste Checkbox rechts daneben zu prüfen
+
+                        End If
+
+                    Loop
+                    
+BereitsAufgabeLSausgegeben2:
+                
+                intZeile2 = intZeile2 + 1 ' Setze als neue Zeile za die Zeile, die 1 Zeile weiter unten steht als za, um die nächste Zeile zu überprüfen
+                'intSchleiDu = intSchleiDu + 1 'erhöhe um eins, weil bereits eine Zeile kontrolliert wurde, für den Schleifenzähler
+                intSchleifenzaehler2 = 0
+                Next
+                
+     
+                '//Auf Blatt Leistungsabrechung orange markieren
+'Dieses Makro prüft, ob pro TN eine Kategorie des Betriebs UND ein Austrittsgrund angegeben ist und markiert das fehlende orange
+Sheets("Leistungsabrechnung").Select
+            'Variablendeklaration:
+            Dim intSchleiDu3 As Integer
+            Dim intZeile3 As Integer 'Zähler dafür, in welcher Zeile wir uns befinden
+            Dim intAnzTN3 As Integer 'Anzahl TN (bzw. Nachnamen)
+            Dim intSpalte3 As Integer 'Zähler dafür, in welcher Spalte wir uns befinden
+            Dim intSchleifenzaehler3 As Integer
+            Dim intmerker As Integer
+            
+'            Dim strLSAufgabe As String
+'            Dim strKSTSpeicher As String
+'            Dim strNameSpeicher As String
+'            Dim strVornameSpeicher As String
+            
+            
+            'Variableninitialisierung:
+            intSchleiDu3 = 0
+            intZeile3 = 4 'weil dies die erste Zeile ist, in der Daten stehen könnten
+            intAnzTN3 = ActiveSheet.UsedRange.Rows.Count
+            'intmerker = 0
+            
+            ' //Abschnitt1: zählen der TN in der Liste
+            
+            
+            '//Abschnitt 2:
+            '/äußere Schleife: Alle TN durchgehen
+            
+              For intSchleiDu3 = 1 To (intAnzTN3) 'Führe aus, bis i= IntAnzTN3, also bis Schleife so oft durchgelaufen ist, wie eventuell ausgefüllte Zeilen da sind
+'
+'                 intmerker = 0
+'
+'               ' Aktive Zelle auf Inhalt prüfen: gehe pro Zeile alle Spalten durch
+'                Cells(intZeile3, 8).Activate 'Setze als aktive Zelle: Zeile, in der Daten von TN stehen könnte und Spalte H=8, da dort die Spalte Austrittsgrund ist
+'
+'                        If ActiveCell.Value = "" Then 'Wenn die Zelle leer ist, dann
+'
+'                            intmerker = intmerker + 1
+'                        End If
+'
+'                Cells(intZeile3, 12).Activate 'Setze als aktive Zelle: Zeile, in der Daten von TN stehen könnte und Spalte L=12, da dort die Spalte Kategorie ist
+'
+'                        If ActiveCell.Value = "" Then 'Wenn die Zelle leer ist, dann
+'                            intmerker = intmerker + 1
+'                        End If
+'
+'                If intmerker = 2 Then GoTo BereitsAufgabeLSausgegeben3
+                
+                'Aktive Zelle auf Inhalt prüfen: gehe pro Zeile alle Spalten durch
+                Cells(intZeile3, 8).Activate 'Setze als aktive Zelle: Zeile, in der Daten von TN stehen könnte und Spalte H=8, da dort die Spalte Austrittsgrund ist
+
+                        If ActiveCell.Value = "" Then 'Wenn die Zelle leer ist, dann
+ 
+                            ActiveCell.Interior.Color = 39423 'orange
+                        End If
+                        
+                Cells(intZeile3, 12).Activate 'Setze als aktive Zelle: Zeile, in der Daten von TN stehen könnte und Spalte L=12, da dort die Spalte Kategorie ist
+                        
+                        If ActiveCell.Value = "" Then 'Wenn die Zelle leer ist, dann
+                            ActiveCell.Interior.Color = 39423 'orange
+                        End If
+                        
+'BereitsAufgabeLSausgegeben3:
+                            
+                intZeile3 = intZeile3 + 1 ' Setze als neue Zeile za die Zeile, die 1 Zeile weiter unten steht als za, um die nächste Zeile zu überprüfen
+                'intSchleiDu = intSchleiDu + 1 'erhöhe um eins, weil bereits eine Zeile kontrolliert wurde, für den Schleifenzähler
+                intSchleifenzaehler3 = 0
+                Next
+                
+  '//Auf Blatt Leistungsabrechung orange markieren
+'Dieses Makro hat Warnfunktion: achtung beschäftigungsstart liegt außerhalb regulärer teilnahmedauer: Färben der Spalten Zuweisungsdauer und Arbeitsaufnahme in der entsprechdnen Zeile
+                
+ActiveWorkbook.SaveAs Filename:="C:\Users\Mitarbeiter\Desktop\" & "20" & Format(Date, "YYMMDD") & " Report Vermittlungsvergütung "
+
+Application.ScreenUpdating = True
+
+MsgBox "Die Erstellung der Reports ist beendet. Du findest sie unter 'C:\Users\Mitarbeiter\Desktop\'. Das ist in der Anleitung auch nochmal erklärt."
+MsgBox "Das Makro ist beendet. Bitte folge nun weiter den Anweisungen auf dem Tabellenblatt Anleitung."
+
+Worksheets("Anleitung").Select
+
+End Sub
+
+Function AufgabeLS(intCheckBoxNr As Integer) As String
+'Dieser Funktion wird übergeben, welche Checkbox angewählt ist und sie gibt die passende Aufgabe für den LS aus.
+
+If intCheckBoxNr = "26" Then
+AufgabeLS = "Erstkontakt zum Betrieb durch GSM in TN-Historie dokumentieren"
+ElseIf intCheckBoxNr = "27" Then
+AufgabeLS = "Infoschreiben an Betrieb übermitteln"
+ElseIf intCheckBoxNr = "28" Then
+AufgabeLS = "AV vom Betrieb anfordern"
+ElseIf intCheckBoxNr = "29" Then
+AufgabeLS = "AV ins Dokumentenarchiv hochladen"
+ElseIf intCheckBoxNr = "30" Then
+AufgabeLS = "Beschäftigungsbestätigung 1. Tranche anfordern"
+ElseIf intCheckBoxNr = "31" Then
+AufgabeLS = "Beschäftigungsbestätigung 1. Tranche ins Dokumentenarchiv hochladen"
+ElseIf intCheckBoxNr = "32" Then
+AufgabeLS = "Beschäftigungsbestätigung 1. Tranche im Original postalisch nach Kiel versenden"
+ElseIf intCheckBoxNr = "33" Then
+AufgabeLS = "Beschäftigungsbestätigung 2. Tranche anfordern"
+ElseIf intCheckBoxNr = "34" Then
+AufgabeLS = "Beschäftigungsbestätigung 2. Tranche ins Dokumentenarchiv hochladen"
+ElseIf intCheckBoxNr = "35" Then
+AufgabeLS = "Beschäftigungsbestätigung 2. Tranche im Original postalisch nach Kiel versenden"
+End If
+
+End Function
